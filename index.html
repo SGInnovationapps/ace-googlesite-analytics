@@ -389,7 +389,9 @@ async function load(){
   $('#run').disabled = true;
   showLoading();
   try{
-    const res = await jsonp(CONFIG.GAS_URL, { startDate, endDate, propertyId });
+       const q = new URLSearchParams({ startDate, endDate, propertyId }).toString();
+    const resp = await fetch(CONFIG.GAS_URL + '?' + q);
+    const res = await resp.json();
     if(!res || !res.ok){ throw new Error((res && res.error) || '不明なエラーが発生しました。'); }
     const d = res.data;
     const label = ($('#propLabel').value || CONFIG.PROPERTY_LABEL || `GA4 プロパティ ${d.meta.propertyId}`);
