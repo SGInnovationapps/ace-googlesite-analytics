@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>サイト分析レポート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  /* ===== 設定：まず CONFIG.GAS_URL を自分のデプロイ URL に書き換えてください（<script> 内） ===== */
+  :root{
+    --ink:#16202B; --muted:#6B7684; --faint:#9AA4B0;
+    --bg:#F5F7FA; --surface:#FFFFFF; --hair:#E4E8EE; --hair-strong:#D3DAE3;
+    --accent:#2857D6; --accent-soft:#EAF0FF; --teal:#0F9E8E;
+    --up:#16A34A; --down:#DC2626;
+    --shadow:0 1px 2px rgba(22,32,43,.04), 0 8px 24px rgba(22,32,43,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Inter","Noto Sans JP",system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;
+    background:var(--bg); color:var(--ink);
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+    font-feature-settings:"tnum" 1,"cv05" 1;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:28px 22px 72px}
+  .num{font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+
+  /* ---- masthead ---- */
+  .masthead{
+    display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+    gap:16px 24px; padding-bottom:18px; border-bottom:1px solid var(--hair-strong);
+  }
+  .masthead h1{font-size:24px; font-weight:700; margin:0; letter-spacing:.01em}
+  .subline{margin-top:6px; color:var(--muted); font-size:13px}
+  .subline b{color:var(--ink); font-weight:600}
+  .controls{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+  .presets{display:inline-flex; background:var(--surface); border:1px solid var(--hair-strong); border-radius:10px; overflow:hidden}
+  .presets button{
+    appearance:none; border:0; background:transparent; padding:8px 12px; font:inherit; font-size:13px;
+    color:var(--muted); cursor:pointer; border-left:1px solid var(--hair);
+  }
+  .presets button:first-child{border-left:0}
+  .presets button[aria-pressed="true"]{background:var(--accent); color:#fff; font-weight:600}
+  .dates{display:inline-flex; align-items:center; gap:6px}
+  .dates input{
+    font:inherit; font-size:13px; padding:7px 9px; border:1px solid var(--hair-strong);
+    border-radius:9px; background:var(--surface); color:var(--ink);
+  }
+  .dates span{color:var(--faint)}
+  .btn{
+    appearance:none; font:inherit; font-size:13px; font-weight:600; cursor:pointer;
+    padding:8px 14px; border-radius:9px; border:1px solid var(--accent);
+    background:var(--accent); color:#fff;
+  }
+  .btn.ghost{background:var(--surface); color:var(--ink); border-color:var(--hair-strong)}
+  .btn:disabled{opacity:.5; cursor:default}
+
+  .settings{margin-top:12px}
+  .settings summary{cursor:pointer; color:var(--muted); font-size:12.5px; width:max-content}
+  .settings .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px}
+  .settings label{font-size:12.5px; color:var(--muted)}
+  .settings input{font:inherit; font-size:13px; padding:7px 9px; border:1px solid var(--hair-strong); border-radius:9px; min-width:180px}
+
+  /* ---- KPI strip ---- */
+  .panel{background:var(--surface); border:1px solid var(--hair); border-radius:14px; box-shadow:var(--shadow)}
+  .kpi{margin-top:22px; border-top:3px solid var(--accent); overflow:hidden}
+  .kpi-grid{display:grid; grid-template-columns:repeat(3,1fr)}
+  .cell{padding:18px 20px; border-left:1px solid var(--hair); border-top:1px solid var(--hair)}
+  .cell:nth-child(-n+3){border-top:0}
+  .cell:nth-child(3n+1){border-left:0}
+  .cell .label{font-size:12.5px; color:var(--muted); font-weight:500}
+  .cell .value{font-size:30px; font-weight:700; margin-top:8px}
+  .cell .value small{font-size:15px; font-weight:600; color:var(--muted); margin-left:2px}
+  .delta{display:inline-flex; align-items:center; gap:4px; margin-top:8px; font-size:12.5px; font-weight:600}
+  .delta .prev{color:var(--faint); font-weight:400; margin-left:6px}
+  .delta.up{color:var(--up)} .delta.down{color:var(--down)} .delta.flat{color:var(--muted)}
+
+  /* ---- chart ---- */
+  .section-head{display:flex; align-items:baseline; justify-content:space-between; margin:34px 2px 12px}
+  .section-head h2{font-size:16px; font-weight:700; margin:0}
+  .section-head .hint{font-size:12px; color:var(--faint)}
+  .chart-wrap{padding:18px 20px 22px}
+  .chart-box{position:relative; height:300px}
+  .legend{display:flex; gap:18px; margin:2px 2px 14px}
+  .legend span{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted)}
+  .swatch{width:20px; height:3px; border-radius:2px; display:inline-block}
+
+  /* ---- tables ---- */
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:22px}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  thead th{
+    text-align:left; font-weight:600; color:var(--muted); font-size:11.5px;
+    padding:12px 16px; border-bottom:1px solid var(--hair-strong);
+  }
+  thead th.r{text-align:right}
+  tbody td{padding:11px 16px; border-bottom:1px solid var(--hair); vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  .name-main{font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:0}
+  td.name{max-width:0; width:60%}
+  .name-sub{color:var(--faint); font-size:11.5px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  td.r{text-align:right; white-space:nowrap}
+  .barcell{position:relative}
+  .bar{position:absolute; left:16px; right:16px; bottom:6px; height:3px; background:var(--accent-soft); border-radius:2px}
+  .bar i{position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:2px}
+  .panel .table-title{font-size:14px; font-weight:700; padding:16px 16px 0}
+
+  /* ---- states ---- */
+  #state{margin-top:22px}
+  .msg{padding:26px 22px; border-radius:14px; border:1px solid var(--hair); background:var(--surface); color:var(--muted); font-size:14px}
+  .msg.err{border-color:#F3C9C9; background:#FDF3F3; color:#9A2B2B}
+  .msg b{color:var(--ink)}
+  .loading{display:flex; align-items:center; gap:12px}
+  .spin{width:18px; height:18px; border:2px solid var(--hair-strong); border-top-color:var(--accent); border-radius:50%; animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .hidden{display:none !important}
+  .updated{color:var(--faint); font-size:12px; margin-top:14px; text-align:right}
+
+  @media (max-width:760px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .cell:nth-child(-n+3){border-top:1px solid var(--hair)}
+    .cell:nth-child(1),.cell:nth-child(2){border-top:0}
+    .cell:nth-child(3n+1){border-left:1px solid var(--hair)}
+    .cell:nth-child(2n+1){border-left:0}
+    .cols{grid-template-columns:1fr}
+  }
+  @media print{
+    body{background:#fff}
+    .controls,.settings,.section-head .hint,.btn{display:none !important}
+    .wrap{max-width:none; padding:0}
+    .panel{box-shadow:none; break-inside:avoid}
+    .cols{gap:14px}
+    .chart-box{height:250px}
+    @page{margin:14mm}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <h1>サイト分析レポート</h1>
+      <div class="subline" id="subline">対象プロパティ・期間を読み込み中…</div>
+    </div>
+    <div class="controls">
+      <div class="presets" id="presets" role="group" aria-label="期間プリセット">
+        <button data-days="7">過去7日</button>
+        <button data-days="28" aria-pressed="true">過去28日</button>
+        <button data-days="90">過去90日</button>
+      </div>
+      <div class="dates">
+        <input type="date" id="start" aria-label="開始日">
+        <span>–</span>
+        <input type="date" id="end" aria-label="終了日">
+      </div>
+      <button class="btn" id="run">更新</button>
+      <button class="btn ghost" id="print">PDF出力</button>
+    </div>
+    <details class="settings" style="flex-basis:100%">
+      <summary>設定（プロパティID）</summary>
+      <div class="row">
+        <label>GA4 プロパティID <input type="text" id="propId" inputmode="numeric" placeholder="例：123456789"></label>
+        <label>レポート名称 <input type="text" id="propLabel" placeholder="例：〇〇株式会社 コーポレートサイト"></label>
+      </div>
+    </details>
+  </header>
+
+  <div id="state"></div>
+
+  <main id="report" class="hidden">
+    <section class="panel kpi">
+      <div class="kpi-grid" id="kpiGrid"></div>
+    </section>
+
+    <div class="section-head">
+      <h2>日次推移</h2>
+      <span class="hint">選択期間の日別データ</span>
+    </div>
+    <section class="panel chart-wrap">
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--accent)"></i>セッション</span>
+        <span><i class="swatch" style="background:var(--teal)"></i>ユーザー</span>
+      </div>
+      <div class="chart-box"><canvas id="trend"></canvas></div>
+    </section>
+
+    <div class="cols">
+      <div>
+        <div class="section-head"><h2>上位ページ</h2><span class="hint">ページビュー順・上位20</span></div>
+        <section class="panel">
+          <table>
+            <thead><tr><th>ページ</th><th class="r">PV</th><th class="r">ユーザー</th><th class="r">平均滞在</th></tr></thead>
+            <tbody id="pagesBody"></tbody>
+          </table>
+        </section>
+      </div>
+      <div>
+        <div class="section-head"><h2>上位イベント</h2><span class="hint">発生回数順・上位20</span></div>
+        <section class="panel">
+          <table>
+            <thead><tr><th>イベント名</th><th class="r">回数</th><th class="r">ユーザー</th></tr></thead>
+            <tbody id="eventsBody"></tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+
+    <div class="updated" id="updated"></div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — ここを自分の環境に合わせて書き換える
+   ============================================================ */
+const CONFIG = {
+  // GAS ウェブアプリの /exec URL（末尾 /exec まで）
+  GAS_URL: 'PASTE_YOUR_GAS_WEBAPP_URL_HERE',
+  // 既定の GA4 プロパティID（GAS 側で設定するなら空でOK）
+  DEFAULT_PROPERTY_ID: '',
+  // レポート見出しに出す名称（空なら「GA4 プロパティ <ID>」）
+  PROPERTY_LABEL: ''
+};
+
+/* ---------- helpers ---------- */
+const $ = (s)=>document.querySelector(s);
+const fmtInt = (n)=> (Number(n)||0).toLocaleString('ja-JP');
+const fmtPct = (n)=> ((Number(n)||0)*100).toFixed(1)+'%';
+function fmtDur(sec){
+  sec = Math.round(Number(sec)||0);
+  const m = Math.floor(sec/60), s = sec%60;
+  return m>0 ? `${m}分${s}秒` : `${s}秒`;
+}
+function isoDaysAgo(n){
+  const d = new Date(); d.setDate(d.getDate()-n);
+  return d.toISOString().slice(0,10);
+}
+function mdLabel(yyyymmdd){ // '20260813' -> '8/13'
+  const s = String(yyyymmdd);
+  return `${Number(s.slice(4,6))}/${Number(s.slice(6,8))}`;
+}
+function pretty(dateStr){ // '2026-08-13' -> '2026/08/13'
+  return String(dateStr).replace(/-/g,'/');
+}
+
+/* ---------- JSONP ---------- */
+function jsonp(url, params){
+  return new Promise((resolve, reject)=>{
+    const cb = 'ga4cb_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    const timer = setTimeout(()=>{ cleanup(); reject(new Error('タイムアウトしました。しばらくおいて再度お試しください。')); }, 30000);
+    function cleanup(){ clearTimeout(timer); delete window[cb]; if(script.parentNode) script.remove(); }
+    window[cb] = (res)=>{ cleanup(); resolve(res); };
+    script.onerror = ()=>{ cleanup(); reject(new Error('サーバーに接続できませんでした。GAS の URL と公開設定を確認してください。')); };
+    const q = new URLSearchParams(Object.assign({}, params, {callback: cb})).toString();
+    script.src = url + (url.includes('?')?'&':'?') + q;
+    document.body.appendChild(script);
+  });
+}
+
+/* ---------- state UI ---------- */
+function showLoading(){
+  $('#report').classList.add('hidden');
+  $('#state').innerHTML = '<div class="msg loading"><span class="spin"></span>データを取得しています…</div>';
+}
+function showError(text){
+  $('#report').classList.add('hidden');
+  $('#state').innerHTML = `<div class="msg err"><b>取得できませんでした。</b><br>${text}</div>`;
+}
+function showSetup(){
+  $('#state').innerHTML = `<div class="msg"><b>初期設定が必要です。</b><br>
+    HTML 内 <code>CONFIG.GAS_URL</code> に、デプロイした GAS ウェブアプリの <code>/exec</code> URL を貼り付けてください。
+    続けて「設定」から GA4 プロパティID を入力し「更新」を押します。</div>`;
+}
+function clearState(){ $('#state').innerHTML = ''; }
+
+/* ---------- delta ---------- */
+function deltaHtml(cur, prev){
+  cur = Number(cur)||0; prev = Number(prev)||0;
+  if(prev === 0){
+    return `<div class="delta flat">前期データなし</div>`;
+  }
+  const pct = (cur-prev)/prev*100;
+  const cls = pct>0.05 ? 'up' : pct<-0.05 ? 'down' : 'flat';
+  const arrow = pct>0.05 ? '▲' : pct<-0.05 ? '▼' : '—';
+  const sign = pct>0 ? '+' : '';
+  return `<div class="delta ${cls}">${arrow} ${sign}${pct.toFixed(1)}%<span class="prev">前期比</span></div>`;
+}
+
+/* ---------- render KPI ---------- */
+function renderKpi(totals){
+  const c = totals.current||{}, p = totals.previous||{};
+  const defs = [
+    {key:'totalUsers',      label:'総ユーザー数',      fmt:fmtInt},
+    {key:'newUsers',        label:'新規ユーザー',      fmt:fmtInt},
+    {key:'sessions',        label:'セッション',        fmt:fmtInt},
+    {key:'screenPageViews', label:'ページビュー',      fmt:fmtInt},
+    {key:'engagementRate',  label:'エンゲージメント率', fmt:fmtPct},
+    {key:'averageSessionDuration', label:'平均セッション時間', fmt:fmtDur}
+  ];
+  $('#kpiGrid').innerHTML = defs.map(d=>`
+    <div class="cell">
+      <div class="label">${d.label}</div>
+      <div class="value num">${d.fmt(c[d.key])}</div>
+      ${deltaHtml(c[d.key], p[d.key])}
+    </div>`).join('');
+}
+
+/* ---------- render chart ---------- */
+let chart = null;
+function renderChart(daily){
+  const labels = daily.map(r=> mdLabel(r.date));
+  const sessions = daily.map(r=> Number(r.sessions)||0);
+  const users = daily.map(r=> Number(r.totalUsers)||0);
+  const ctx = $('#trend').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,300);
+  grad.addColorStop(0,'rgba(40,87,214,.18)');
+  grad.addColorStop(1,'rgba(40,87,214,0)');
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'セッション', data:sessions, borderColor:'#2857D6', backgroundColor:grad,
+        borderWidth:2, fill:true, tension:.3, pointRadius:0, pointHoverRadius:4 },
+      { label:'ユーザー', data:users, borderColor:'#0F9E8E', backgroundColor:'transparent',
+        borderWidth:2, fill:false, tension:.3, pointRadius:0, pointHoverRadius:4, borderDash:[] }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false},
+        tooltip:{ backgroundColor:'#16202B', padding:10, cornerRadius:8, titleFont:{family:'Inter'}, bodyFont:{family:'Inter'} } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:'#9AA4B0', maxRotation:0, autoSkip:true, maxTicksLimit:12, font:{size:11}} },
+        y:{ beginAtZero:true, grid:{color:'#EEF1F5'}, border:{display:false},
+            ticks:{color:'#9AA4B0', font:{size:11}, precision:0} }
+      }
+    }
+  });
+}
+
+/* ---------- render tables ---------- */
+function renderPages(rows){
+  const max = Math.max(1, ...rows.map(r=> Number(r.screenPageViews)||0));
+  $('#pagesBody').innerHTML = rows.map(r=>{
+    const pv = Number(r.screenPageViews)||0;
+    const w = (pv/max*100).toFixed(1);
+    const title = r.pageTitle && r.pageTitle !== '(not set)' ? r.pageTitle : r.pagePath;
+    return `<tr>
+      <td class="name barcell">
+        <div class="name-main" title="${esc(title)}">${esc(title)}</div>
+        <div class="name-sub" title="${esc(r.pagePath)}">${esc(r.pagePath)}</div>
+        <span class="bar"><i style="width:${w}%"></i></span>
+      </td>
+      <td class="r num">${fmtInt(pv)}</td>
+      <td class="r num">${fmtInt(r.totalUsers)}</td>
+      <td class="r num">${fmtDur(r.averageSessionDuration)}</td>
+    </tr>`;
+  }).join('') || emptyRow(4);
+}
+function renderEvents(rows){
+  const max = Math.max(1, ...rows.map(r=> Number(r.eventCount)||0));
+  $('#eventsBody').innerHTML = rows.map(r=>{
+    const ec = Number(r.eventCount)||0;
+    const w = (ec/max*100).toFixed(1);
+    return `<tr>
+      <td class="name barcell">
+        <div class="name-main" title="${esc(r.eventName)}">${esc(r.eventName)}</div>
+        <span class="bar"><i style="width:${w}%"></i></span>
+      </td>
+      <td class="r num">${fmtInt(ec)}</td>
+      <td class="r num">${fmtInt(r.totalUsers)}</td>
+    </tr>`;
+  }).join('') || emptyRow(3);
+}
+function emptyRow(cols){ return `<tr><td colspan="${cols}" style="color:var(--faint);padding:20px 16px">対象データがありません。</td></tr>`; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- main ---------- */
+async function load(){
+  if(!CONFIG.GAS_URL || CONFIG.GAS_URL.startsWith('PASTE_')){ showSetup(); return; }
+  const startDate = $('#start').value, endDate = $('#end').value;
+  if(!startDate || !endDate){ showError('開始日と終了日を指定してください。'); return; }
+  if(startDate > endDate){ showError('開始日が終了日より後になっています。'); return; }
+
+  const propertyId = ($('#propId').value || CONFIG.DEFAULT_PROPERTY_ID || '').replace(/\D/g,'');
+  $('#run').disabled = true;
+  showLoading();
+  try{
+    const res = await jsonp(CONFIG.GAS_URL, { startDate, endDate, propertyId });
+    if(!res || !res.ok){ throw new Error((res && res.error) || '不明なエラーが発生しました。'); }
+    const d = res.data;
+    const label = ($('#propLabel').value || CONFIG.PROPERTY_LABEL || `GA4 プロパティ ${d.meta.propertyId}`);
+    $('#subline').innerHTML = `<b>${esc(label)}</b>　${pretty(d.meta.startDate)}〜${pretty(d.meta.endDate)}` +
+      `<span style="color:var(--faint)">（前期比：${pretty(d.meta.prevStartDate)}〜${pretty(d.meta.prevEndDate)}）</span>`;
+    renderKpi(d.totals);
+    renderChart(d.daily||[]);
+    renderPages(d.pages||[]);
+    renderEvents(d.events||[]);
+    $('#updated').textContent = '取得日時：' + new Date().toLocaleString('ja-JP');
+    clearState();
+    $('#report').classList.remove('hidden');
+  }catch(err){
+    showError(esc(err.message||String(err)));
+  }finally{
+    $('#run').disabled = false;
+  }
+}
+
+/* ---------- controls ---------- */
+function setPreset(days){
+  $('#end').value = isoDaysAgo(1);       // 昨日
+  $('#start').value = isoDaysAgo(days);  // days 日前
+  document.querySelectorAll('#presets button').forEach(b=>{
+    b.setAttribute('aria-pressed', String(Number(b.dataset.days)===days));
+  });
+}
+$('#presets').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  setPreset(Number(b.dataset.days)); load();
+});
+['#start','#end'].forEach(sel=> $(sel).addEventListener('change', ()=>{
+  document.querySelectorAll('#presets button').forEach(b=> b.setAttribute('aria-pressed','false'));
+}));
+$('#run').addEventListener('click', load);
+$('#print').addEventListener('click', ()=> window.print());
+$('#propId').value = CONFIG.DEFAULT_PROPERTY_ID || '';
+$('#propLabel').value = CONFIG.PROPERTY_LABEL || '';
+
+/* init */
+setPreset(28);
+load();
+</script>
+</body>
+</html>
