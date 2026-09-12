@@ -97,6 +97,24 @@
   .chip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink); background:#F5F7FA; border:1px solid var(--hair); border-radius:20px; padding:3px 10px}
   .chip .num{font-weight:700}
 
+  /* page picker + detail */
+  .picker{display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:16px 20px}
+  .picker label{font-size:13px; color:var(--muted)}
+  .picker select{font:inherit; font-size:14px; padding:9px 12px; border:1px solid var(--hair-strong); border-radius:9px; background:var(--surface); color:var(--ink); min-width:260px; max-width:100%}
+  .detail{border-top:1px solid var(--hair); padding:18px 20px 22px}
+  .detail-title{font-size:15px; font-weight:700; margin:0}
+  .detail-title .page-path{color:var(--faint); font-size:11px; font-weight:400; margin-left:8px}
+  .detail-kpi{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:16px 0 6px}
+  .detail-kpi .k{border:1px solid var(--hair); border-radius:11px; padding:12px 14px}
+  .detail-kpi .k .label{font-size:12px; color:var(--muted)}
+  .detail-kpi .k .value{font-size:24px; font-weight:700; margin-top:5px}
+  .detail-kpi .k .delta{margin-top:6px; font-size:11.5px}
+  .detail-sub{font-size:12.5px; color:var(--muted); font-weight:600; margin:22px 0 8px}
+  .trend{width:100%; height:auto; display:block; margin:4px 0 2px}
+  .trend-single{font-size:28px; font-weight:700; padding:14px 0}
+  .detail-hint{padding:20px; color:var(--faint); font-size:13px}
+  .detail-loading{padding:20px; display:flex; align-items:center; gap:12px; color:var(--muted); font-size:13.5px}
+
   /* states */
   #state{margin-top:22px}
   .msg{padding:26px 22px; border-radius:14px; border:1px solid var(--hair); background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7}
@@ -136,7 +154,7 @@
     </div>
     <div class="controls">
       <div class="presets" id="presets" role="group" aria-label="期間">
-         <button data-days="1">過去1日</button>
+        <button data-days="1">過去1日</button>
         <button data-days="7">過去7日</button>
         <button data-days="28" aria-pressed="true">過去28日</button>
         <button data-days="90">過去90日</button>
@@ -174,6 +192,20 @@
     <section class="panel">
       <div class="chan" id="chanList"></div>
       <div class="note" id="chanNote"></div>
+    </section>
+
+    <!-- ページを選んで詳しく見る -->
+    <div class="section-head">
+      <h2>ページを選んで詳しく見る</h2>
+      <p>ページを選ぶと、そのページの閲覧数の推移と、入口の内訳を表示します。</p>
+    </div>
+    <section class="panel">
+      <div class="picker">
+        <label for="pageSelect">ページ</label>
+        <select id="pageSelect"><option value="">— ページを選択 —</option></select>
+      </div>
+      <div id="pageDetailHint" class="detail-hint">上のプルダウンからページを選んでください。</div>
+      <div id="pageDetail"></div>
     </section>
 
     <!-- ページ別 -->
@@ -239,8 +271,8 @@ const PAGE_LABELS = {
   '/view/ace-next/inst':        '会員マイページ操作説明',
   '/view/ace-next/instLABO':    'LABO会員マイページ操作説明',
   '/view/ace-next/procedure':   '各種お手続き',
-  '/view/ace-next/continue':    '継続届'
-   '/view/ace-next/labo/LABO-about': 'LABOについて',
+  '/view/ace-next/continue':    '継続届',
+  '/view/ace-next/labo/LABO-about': 'LABOについて',
   '/view/ace-next/labo/2026':       'LABO2026年度'
 };
 
@@ -261,6 +293,10 @@ function bucketOf(source, medium){
 }
 const ALL_BUCKETS = [...SOURCE_RULES, SOURCE_FALLBACK];
 const bucketMeta = (key)=> ALL_BUCKETS.find(b=>b.key===key) || SOURCE_FALLBACK;
+const mdLabel = (s)=>{ s=String(s); return Number(s.slice(4,6))+'/'+Number(s.slice(6,8)); };
+
+// 詳細取得で使う、直近の取得条件（メインの取得成功時に更新）
+let LAST = { startDate:'', endDate:'', propertyId:'' };
 
 function deltaHtml(cur, prev){
   cur=Number(cur)||0; prev=Number(prev)||0;
@@ -376,6 +412,116 @@ function cleanTitle(t){
   return String(t).split(/\s[|｜]\s|\s-\s/)[0].trim();
 }
 
+/* ---------- ページ絞り込み：プルダウン生成 ---------- */
+function populatePicker(pagesRows){
+  const cur={}, title={};
+  pagesRows.forEach(r=>{
+    if(r.dateRange==='date_range_1') return; // 当期のみ
+    cur[r.pagePath]=(cur[r.pagePath]||0)+(Number(r.screenPageViews)||0);
+    if(!title[r.pagePath]) title[r.pagePath]=r.pageTitle;
+  });
+  const paths=Object.keys(cur).sort((a,b)=>cur[b]-cur[a]);
+  const sel=$('#pageSelect');
+  sel.innerHTML='<option value="">— ページを選択 —</option>'+paths.map(p=>{
+    const name=PAGE_LABELS[p]||cleanTitle(title[p])||p;
+    return `<option value="${esc(p)}" data-name="${esc(name)}">${esc(name)}（${fmtInt(cur[p])}）</option>`;
+  }).join('');
+  sel.value='';
+  $('#pageDetail').innerHTML='';
+  $('#pageDetailHint').classList.remove('hidden');
+}
+
+/* ---------- ページ絞り込み：詳細取得 ---------- */
+async function loadPageDetail(path){
+  if(!path){ $('#pageDetail').innerHTML=''; $('#pageDetailHint').classList.remove('hidden'); return; }
+  $('#pageDetailHint').classList.add('hidden');
+  $('#pageDetail').innerHTML='<div class="detail-loading"><span class="spin"></span>ページの詳細を取得しています…</div>';
+  try{
+    const q=new URLSearchParams({ mode:'pageDetail', page:path, startDate:LAST.startDate, endDate:LAST.endDate, propertyId:LAST.propertyId }).toString();
+    const resp=await fetch(CONFIG.GAS_URL+'?'+q);
+    if(!resp.ok) throw new Error('サーバー応答エラー（HTTP '+resp.status+'）。');
+    const res=await resp.json();
+    if(!res||!res.ok) throw new Error((res&&res.error)||'取得に失敗しました。');
+    renderPageDetail(res.data, path);
+  }catch(err){
+    $('#pageDetail').innerHTML=`<div class="msg err" style="margin:16px 20px 20px">${esc(err.message||String(err))}</div>`;
+  }
+}
+
+/* ---------- ページ絞り込み：詳細描画 ---------- */
+function renderPageDetail(d, path){
+  const opt=$('#pageSelect').selectedOptions[0];
+  const name=(opt&&opt.dataset.name)||PAGE_LABELS[path]||path;
+  const c=(d.totals&&d.totals.current)||{}, p=(d.totals&&d.totals.previous)||{};
+
+  const kpis=[
+    {key:'screenPageViews', label:'ページ閲覧数'},
+    {key:'sessions',        label:'訪問数'},
+    {key:'totalUsers',      label:'訪問した人数'}
+  ];
+  const kpiHtml=kpis.map(k=>`<div class="k"><div class="label">${k.label}</div><div class="value num">${fmtInt(c[k.key])}</div>${deltaHtml(c[k.key],p[k.key])}</div>`).join('');
+
+  // 推移
+  const daily=(d.daily||[]).map(r=>({d:r.date, v:Number(r.screenPageViews)||0}));
+  const trendHtml = daily.length>=2
+    ? sparkline(daily,'#2857D6')
+    : `<div class="trend-single num">${fmtInt(daily.length?daily[0].v:(c.screenPageViews||0))}<span style="font-size:13px;color:var(--muted);font-weight:500"> 閲覧</span></div>`;
+
+  // 入口内訳（当期・前期）
+  const cur={}, prev={};
+  (d.source||[]).forEach(r=>{
+    const {source,medium}=splitSM(r.sessionSourceMedium);
+    const bk=bucketOf(source,medium).key;
+    const tgt=r.dateRange==='date_range_1'?prev:cur;
+    tgt[bk]=(tgt[bk]||0)+(Number(r.screenPageViews)||0);
+  });
+  const total=Object.values(cur).reduce((a,b)=>a+b,0)||1;
+  const srcRows=ALL_BUCKETS.map(b=>({b, cur:cur[b.key]||0, prev:prev[b.key]||0}))
+    .filter(x=>x.cur>0||x.prev>0).sort((a,b)=>b.cur-a.cur)
+    .map(x=>{
+      const share=x.cur/total*100;
+      return `<div class="chan-row">
+        <div class="chan-name"><span class="dot" style="background:${x.b.color}"></span>${esc(x.b.label)}</div>
+        <div class="chan-bar"><i style="width:${share.toFixed(1)}%;background:${x.b.color}"></i></div>
+        <div class="chan-val"><b class="num">${fmtInt(x.cur)}</b><em>${share.toFixed(0)}%</em>${deltaHtml(x.cur,x.prev)}</div>
+      </div>`;
+    }).join('') || '<div class="note" style="padding-left:0">入口のデータがありません。</div>';
+
+  $('#pageDetail').innerHTML=`<div class="detail">
+    <p class="detail-title">${esc(name)}<span class="page-path">${esc(path)}</span></p>
+    <div class="detail-kpi">${kpiHtml}</div>
+    <div class="detail-sub">閲覧数の推移</div>
+    ${trendHtml}
+    <div class="detail-sub">入口の内訳</div>
+    <div class="chan" style="padding:0">${srcRows}</div>
+  </div>`;
+}
+
+/* ---------- 軽量スパークライン（SVG・依存なし） ---------- */
+function sparkline(data, color){
+  const W=680, H=170, padL=8, padR=8, padT=16, padB=22;
+  const n=data.length;
+  const max=Math.max(1, ...data.map(d=>d.v));
+  const iw=W-padL-padR, ih=H-padT-padB;
+  const x=i=> padL + (n<=1?iw/2 : iw*i/(n-1));
+  const y=v=> padT + ih - (v/max*ih);
+  const pts=data.map((d,i)=>[x(i),y(d.v)]);
+  const line=pts.map((pt,i)=>(i?'L':'M')+pt[0].toFixed(1)+' '+pt[1].toFixed(1)).join(' ');
+  const area=`${line} L ${x(n-1).toFixed(1)} ${(padT+ih).toFixed(1)} L ${x(0).toFixed(1)} ${(padT+ih).toFixed(1)} Z`;
+  const idxs = n<=2?[0,n-1]:[0, Math.floor((n-1)/2), n-1];
+  const xlab = idxs.map(i=>{
+    const anchor = i===0?'start':i===n-1?'end':'middle';
+    return `<text x="${x(i).toFixed(1)}" y="${H-6}" font-size="10" fill="#9AA4B0" text-anchor="${anchor}">${mdLabel(data[i].d)}</text>`;
+  }).join('');
+  return `<svg class="trend" viewBox="0 0 ${W} ${H}" role="img" aria-label="閲覧数の推移">
+    <line x1="${padL}" y1="${padT}" x2="${W-padR}" y2="${padT}" stroke="#EEF1F5"/>
+    <text x="${W-padR}" y="${padT-5}" font-size="10" fill="#9AA4B0" text-anchor="end">${fmtInt(max)}</text>
+    <path d="${area}" fill="${color}" fill-opacity="0.12"/>
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${xlab}
+  </svg>`;
+}
+
 /* ---------- main ---------- */
 async function load(){
   if(!CONFIG.GAS_URL || CONFIG.GAS_URL.startsWith('PASTE_')){ showSetup(); return; }
@@ -399,6 +545,8 @@ async function load(){
     renderSummary(d.totals);
     renderChannel(d.channel||[]);
     renderPages(d.pages||[], d.pageSource||[]);
+    LAST={ startDate:d.meta.startDate, endDate:d.meta.endDate, propertyId:d.meta.propertyId };
+    populatePicker(d.pages||[]);
     $('#updated').textContent='取得日時：'+new Date().toLocaleString('ja-JP');
     clearState(); $('#report').classList.remove('hidden');
   }catch(err){
@@ -416,6 +564,7 @@ function setPreset(days){
 $('#presets').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; setPreset(Number(b.dataset.days)); load(); });
 ['#start','#end'].forEach(sel=> $(sel).addEventListener('change',()=> document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed','false'))));
 $('#run').addEventListener('click', load);
+$('#pageSelect').addEventListener('change', e=> loadPageDetail(e.target.value));
 $('#print').addEventListener('click', ()=> window.print());
 $('#propId').value=CONFIG.DEFAULT_PROPERTY_ID||'';
 $('#propLabel').value=CONFIG.PROPERTY_LABEL||'';
