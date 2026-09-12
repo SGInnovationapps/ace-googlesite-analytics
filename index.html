@@ -237,9 +237,9 @@ const CONFIG = {
 const SOURCE_RULES = [
   { key:'line',    label:'LINE・直接アクセス', color:'#2857D6',
     test:(s,m)=> s==='(direct)' || s.includes('line') },
-  { key:'site',    label:'公式サイト',          color:'#0F9E8E',
+  { key:'site',    label:'公式HP',          color:'#0F9E8E',
     test:(s,m)=> s.includes('ace-gym.net') },
-  { key:'app',     label:'会員アプリ(hacomono)', color:'#E8912D',
+  { key:'app',     label:'hacomono', color:'#E8912D',
     test:(s,m)=> s.includes('hacomono') },
   { key:'search',  label:'検索（Google・Yahoo!）', color:'#8B5CF6',
     test:(s,m)=> m==='organic' },
@@ -257,8 +257,8 @@ const SOURCE_FALLBACK = { key:'other', label:'その他', color:'#9AA4B0' };
       '/price':       '料金・月謝',
    ============================================================ */
 const PAGE_LABELS = {
-  '/view/ace-next/':            'LABOメイン',
-  '/view/ace-next':             'LABOメイン',
+  '/view/ace-next/':            'エース（体操・ラボ）',
+  '/view/ace-next':             'エース（体操・ラボ）',
   '/view/ace-next/calendar':    'カレンダー・時間割',
   '/view/ace-next/kinder':      'はじめのいっぽ',
   '/view/ace-next/School-Care': 'にじいろ学舎',
@@ -273,6 +273,7 @@ const PAGE_LABELS = {
   '/view/ace-next/procedure':   '各種お手続き',
   '/view/ace-next/continue':    '継続届',
   '/view/ace-next/labo/LABO-about': 'LABOについて',
+   '/view/ace-next/labo': 'LABOメイン',
   '/view/ace-next/labo/2026':       'LABO2026年度'
 };
 
