@@ -7,13 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  /* ===== 設定：まず CONFIG.GAS_URL を自分のデプロイ URL に書き換えてください（<script> 内） ===== */
   :root{
     --ink:#16202B; --muted:#6B7684; --faint:#9AA4B0;
     --bg:#F5F7FA; --surface:#FFFFFF; --hair:#E4E8EE; --hair-strong:#D3DAE3;
-    --accent:#2857D6; --accent-soft:#EAF0FF; --teal:#0F9E8E;
+    --accent:#2857D6; --accent-soft:#EAF0FF;
     --up:#16A34A; --down:#DC2626;
     --shadow:0 1px 2px rgba(22,32,43,.04), 0 8px 24px rgba(22,32,43,.05);
   }
@@ -21,118 +19,109 @@
   html,body{margin:0}
   body{
     font-family:"Inter","Noto Sans JP",system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;
-    background:var(--bg); color:var(--ink);
-    -webkit-font-smoothing:antialiased; line-height:1.5;
-    font-feature-settings:"tnum" 1,"cv05" 1;
+    background:var(--bg); color:var(--ink); line-height:1.5;
+    -webkit-font-smoothing:antialiased; font-feature-settings:"tnum" 1;
   }
-  .wrap{max-width:1080px; margin:0 auto; padding:28px 22px 72px}
+  .wrap{max-width:1000px; margin:0 auto; padding:28px 22px 72px}
   .num{font-variant-numeric:tabular-nums; letter-spacing:-.01em}
 
-  /* ---- masthead ---- */
-  .masthead{
-    display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
-    gap:16px 24px; padding-bottom:18px; border-bottom:1px solid var(--hair-strong);
-  }
-  .masthead h1{font-size:24px; font-weight:700; margin:0; letter-spacing:.01em}
+  /* masthead */
+  .masthead{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px 24px; padding-bottom:18px; border-bottom:1px solid var(--hair-strong)}
+  .masthead h1{font-size:24px; font-weight:700; margin:0}
   .subline{margin-top:6px; color:var(--muted); font-size:13px}
   .subline b{color:var(--ink); font-weight:600}
   .controls{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
   .presets{display:inline-flex; background:var(--surface); border:1px solid var(--hair-strong); border-radius:10px; overflow:hidden}
-  .presets button{
-    appearance:none; border:0; background:transparent; padding:8px 12px; font:inherit; font-size:13px;
-    color:var(--muted); cursor:pointer; border-left:1px solid var(--hair);
-  }
+  .presets button{appearance:none; border:0; background:transparent; padding:8px 12px; font:inherit; font-size:13px; color:var(--muted); cursor:pointer; border-left:1px solid var(--hair)}
   .presets button:first-child{border-left:0}
   .presets button[aria-pressed="true"]{background:var(--accent); color:#fff; font-weight:600}
   .dates{display:inline-flex; align-items:center; gap:6px}
-  .dates input{
-    font:inherit; font-size:13px; padding:7px 9px; border:1px solid var(--hair-strong);
-    border-radius:9px; background:var(--surface); color:var(--ink);
-  }
+  .dates input{font:inherit; font-size:13px; padding:7px 9px; border:1px solid var(--hair-strong); border-radius:9px; background:var(--surface); color:var(--ink)}
   .dates span{color:var(--faint)}
-  .btn{
-    appearance:none; font:inherit; font-size:13px; font-weight:600; cursor:pointer;
-    padding:8px 14px; border-radius:9px; border:1px solid var(--accent);
-    background:var(--accent); color:#fff;
-  }
+  .btn{appearance:none; font:inherit; font-size:13px; font-weight:600; cursor:pointer; padding:8px 14px; border-radius:9px; border:1px solid var(--accent); background:var(--accent); color:#fff}
   .btn.ghost{background:var(--surface); color:var(--ink); border-color:var(--hair-strong)}
   .btn:disabled{opacity:.5; cursor:default}
-
-  .settings{margin-top:12px}
+  .settings{margin-top:12px; flex-basis:100%}
   .settings summary{cursor:pointer; color:var(--muted); font-size:12.5px; width:max-content}
   .settings .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px}
   .settings label{font-size:12.5px; color:var(--muted)}
   .settings input{font:inherit; font-size:13px; padding:7px 9px; border:1px solid var(--hair-strong); border-radius:9px; min-width:180px}
 
-  /* ---- KPI strip ---- */
   .panel{background:var(--surface); border:1px solid var(--hair); border-radius:14px; box-shadow:var(--shadow)}
-  .kpi{margin-top:22px; border-top:3px solid var(--accent); overflow:hidden}
-  .kpi-grid{display:grid; grid-template-columns:repeat(3,1fr)}
-  .cell{padding:18px 20px; border-left:1px solid var(--hair); border-top:1px solid var(--hair)}
-  .cell:nth-child(-n+3){border-top:0}
-  .cell:nth-child(3n+1){border-left:0}
+
+  /* summary */
+  .summary{margin-top:22px; border-top:3px solid var(--accent); overflow:hidden}
+  .summary-grid{display:grid; grid-template-columns:repeat(3,1fr)}
+  .cell{padding:18px 20px; border-left:1px solid var(--hair)}
+  .cell:first-child{border-left:0}
   .cell .label{font-size:12.5px; color:var(--muted); font-weight:500}
   .cell .value{font-size:30px; font-weight:700; margin-top:8px}
-  .cell .value small{font-size:15px; font-weight:600; color:var(--muted); margin-left:2px}
   .delta{display:inline-flex; align-items:center; gap:4px; margin-top:8px; font-size:12.5px; font-weight:600}
   .delta .prev{color:var(--faint); font-weight:400; margin-left:6px}
   .delta.up{color:var(--up)} .delta.down{color:var(--down)} .delta.flat{color:var(--muted)}
 
-  /* ---- chart ---- */
-  .section-head{display:flex; align-items:baseline; justify-content:space-between; margin:34px 2px 12px}
+  /* section head */
+  .section-head{margin:34px 2px 12px}
   .section-head h2{font-size:16px; font-weight:700; margin:0}
-  .section-head .hint{font-size:12px; color:var(--faint)}
-  .chart-wrap{padding:18px 20px 22px}
-  .chart-box{position:relative; height:300px}
-  .legend{display:flex; gap:18px; margin:2px 2px 14px}
-  .legend span{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted)}
-  .swatch{width:20px; height:3px; border-radius:2px; display:inline-block}
+  .section-head p{font-size:12.5px; color:var(--muted); margin:5px 0 0}
 
-  /* ---- tables ---- */
-  .cols{display:grid; grid-template-columns:1fr 1fr; gap:22px}
-  table{width:100%; border-collapse:collapse; font-size:13px}
-  thead th{
-    text-align:left; font-weight:600; color:var(--muted); font-size:11.5px;
-    padding:12px 16px; border-bottom:1px solid var(--hair-strong);
-  }
-  thead th.r{text-align:right}
-  tbody td{padding:11px 16px; border-bottom:1px solid var(--hair); vertical-align:middle}
-  tbody tr:last-child td{border-bottom:0}
-  .name-main{font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:0}
-  td.name{max-width:0; width:60%}
-  .name-sub{color:var(--faint); font-size:11.5px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  td.r{text-align:right; white-space:nowrap}
-  .barcell{position:relative}
-  .bar{position:absolute; left:16px; right:16px; bottom:6px; height:3px; background:var(--accent-soft); border-radius:2px}
-  .bar i{position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:2px}
-  .panel .table-title{font-size:14px; font-weight:700; padding:16px 16px 0}
+  /* channel bars */
+  .chan{padding:8px 20px 16px}
+  .chan-row{display:grid; grid-template-columns:150px 1fr 120px; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--hair)}
+  .chan-row:last-child{border-bottom:0}
+  .chan-name{display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:500}
+  .dot{width:10px; height:10px; border-radius:3px; flex:0 0 auto}
+  .chan-bar{height:10px; background:#F0F3F7; border-radius:5px; overflow:hidden}
+  .chan-bar i{display:block; height:100%; border-radius:5px}
+  .chan-val{text-align:right; font-size:13.5px}
+  .chan-val b{font-weight:700}
+  .chan-val em{font-style:normal; color:var(--faint); font-size:12px; margin-left:5px}
+  .chan-val .delta{margin:2px 0 0; justify-content:flex-end; font-size:11.5px}
+  .note{font-size:11.5px; color:var(--faint); padding:2px 20px 16px; line-height:1.6}
 
-  /* ---- states ---- */
+  /* pages */
+  .legend{display:flex; flex-wrap:wrap; gap:14px; margin:2px 2px 14px}
+  .legend span{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
+  .page-item{padding:16px 20px; border-bottom:1px solid var(--hair)}
+  .page-item:last-child{border-bottom:0}
+  .page-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+  .page-name{font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .page-path{color:var(--faint); font-size:11px; font-weight:400; margin-left:8px}
+  .page-metrics{white-space:nowrap; text-align:right}
+  .page-metrics b{font-size:16px; font-weight:700}
+  .page-metrics .unit{font-size:11.5px; color:var(--muted); margin-left:3px}
+  .page-metrics .delta{display:inline-flex; margin:0 0 0 10px; font-size:11.5px}
+  .stack{display:flex; height:12px; border-radius:6px; overflow:hidden; margin:12px 0 10px; background:#F0F3F7}
+  .stack i{height:100%}
+  .chips{display:flex; flex-wrap:wrap; gap:7px}
+  .chip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink); background:#F5F7FA; border:1px solid var(--hair); border-radius:20px; padding:3px 10px}
+  .chip .num{font-weight:700}
+
+  /* states */
   #state{margin-top:22px}
-  .msg{padding:26px 22px; border-radius:14px; border:1px solid var(--hair); background:var(--surface); color:var(--muted); font-size:14px}
+  .msg{padding:26px 22px; border-radius:14px; border:1px solid var(--hair); background:var(--surface); color:var(--muted); font-size:14px; line-height:1.7}
   .msg.err{border-color:#F3C9C9; background:#FDF3F3; color:#9A2B2B}
   .msg b{color:var(--ink)}
+  .msg.err b{color:#7A1F1F}
+  .msg code{background:#EEF1F5; padding:1px 6px; border-radius:5px; font-size:12.5px}
   .loading{display:flex; align-items:center; gap:12px}
   .spin{width:18px; height:18px; border:2px solid var(--hair-strong); border-top-color:var(--accent); border-radius:50%; animation:sp .8s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
   .hidden{display:none !important}
-  .updated{color:var(--faint); font-size:12px; margin-top:14px; text-align:right}
+  .updated{color:var(--faint); font-size:12px; margin-top:16px; text-align:right}
 
-  @media (max-width:760px){
-    .kpi-grid{grid-template-columns:repeat(2,1fr)}
-    .cell:nth-child(-n+3){border-top:1px solid var(--hair)}
-    .cell:nth-child(1),.cell:nth-child(2){border-top:0}
-    .cell:nth-child(3n+1){border-left:1px solid var(--hair)}
-    .cell:nth-child(2n+1){border-left:0}
-    .cols{grid-template-columns:1fr}
+  @media (max-width:720px){
+    .summary-grid{grid-template-columns:1fr}
+    .cell{border-left:0; border-top:1px solid var(--hair)}
+    .cell:first-child{border-top:0}
+    .chan-row{grid-template-columns:110px 1fr 96px; gap:8px}
   }
   @media print{
     body{background:#fff}
-    .controls,.settings,.section-head .hint,.btn{display:none !important}
+    .controls,.settings,.btn,.section-head p{display:none !important}
     .wrap{max-width:none; padding:0}
     .panel{box-shadow:none; break-inside:avoid}
-    .cols{gap:14px}
-    .chart-box{height:250px}
+    .page-item{break-inside:avoid}
     @page{margin:14mm}
   }
 </style>
@@ -143,10 +132,10 @@
   <header class="masthead">
     <div>
       <h1>サイト分析レポート</h1>
-      <div class="subline" id="subline">対象プロパティ・期間を読み込み中…</div>
+      <div class="subline" id="subline">対象・期間を読み込み中…</div>
     </div>
     <div class="controls">
-      <div class="presets" id="presets" role="group" aria-label="期間プリセット">
+      <div class="presets" id="presets" role="group" aria-label="期間">
         <button data-days="7">過去7日</button>
         <button data-days="28" aria-pressed="true">過去28日</button>
         <button data-days="90">過去90日</button>
@@ -159,11 +148,11 @@
       <button class="btn" id="run">更新</button>
       <button class="btn ghost" id="print">PDF出力</button>
     </div>
-    <details class="settings" style="flex-basis:100%">
-      <summary>設定（プロパティID）</summary>
+    <details class="settings">
+      <summary>設定（プロパティID・レポート名）</summary>
       <div class="row">
         <label>GA4 プロパティID <input type="text" id="propId" inputmode="numeric" placeholder="例：123456789"></label>
-        <label>レポート名称 <input type="text" id="propLabel" placeholder="例：〇〇株式会社 コーポレートサイト"></label>
+        <label>レポート名称 <input type="text" id="propLabel" placeholder="例：エース体操クラブ 南丘校"></label>
       </div>
     </details>
   </header>
@@ -171,42 +160,28 @@
   <div id="state"></div>
 
   <main id="report" class="hidden">
-    <section class="panel kpi">
-      <div class="kpi-grid" id="kpiGrid"></div>
+    <!-- サマリー -->
+    <section class="panel summary">
+      <div class="summary-grid" id="summaryGrid"></div>
     </section>
 
+    <!-- どこから来たか -->
     <div class="section-head">
-      <h2>日次推移</h2>
-      <span class="hint">選択期間の日別データ</span>
+      <h2>どこから来たか</h2>
+      <p>サイトを訪れた人が、どの入口から来たかの内訳です（訪問数）。</p>
     </div>
-    <section class="panel chart-wrap">
-      <div class="legend">
-        <span><i class="swatch" style="background:var(--accent)"></i>セッション</span>
-        <span><i class="swatch" style="background:var(--teal)"></i>ユーザー</span>
-      </div>
-      <div class="chart-box"><canvas id="trend"></canvas></div>
+    <section class="panel">
+      <div class="chan" id="chanList"></div>
+      <div class="note" id="chanNote"></div>
     </section>
 
-    <div class="cols">
-      <div>
-        <div class="section-head"><h2>上位ページ</h2><span class="hint">ページビュー順・上位20</span></div>
-        <section class="panel">
-          <table>
-            <thead><tr><th>ページ</th><th class="r">PV</th><th class="r">ユーザー</th><th class="r">平均滞在</th></tr></thead>
-            <tbody id="pagesBody"></tbody>
-          </table>
-        </section>
-      </div>
-      <div>
-        <div class="section-head"><h2>上位イベント</h2><span class="hint">発生回数順・上位20</span></div>
-        <section class="panel">
-          <table>
-            <thead><tr><th>イベント名</th><th class="r">回数</th><th class="r">ユーザー</th></tr></thead>
-            <tbody id="eventsBody"></tbody>
-          </table>
-        </section>
-      </div>
+    <!-- ページ別 -->
+    <div class="section-head">
+      <h2>よく見られたページ</h2>
+      <p>閲覧の多いページと、そのページを見た人がどの入口から来たかの内訳です（ページ閲覧数）。</p>
     </div>
+    <div class="legend" id="legend"></div>
+    <section class="panel" id="pageList"></section>
 
     <div class="updated" id="updated"></div>
   </main>
@@ -214,226 +189,221 @@
 
 <script>
 /* ============================================================
-   CONFIG — ここを自分の環境に合わせて書き換える
+   1) CONFIG — 自分の環境に合わせて書き換える
    ============================================================ */
 const CONFIG = {
-  // GAS ウェブアプリの /exec URL（末尾 /exec まで）
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbxb2Fga6SUdTq7FKxv59X6M5vCwSHB7yj55fQ9wPKv9K1jOmDg3n4WhL8fSKUilQvO9Pw/exec',
-  // 既定の GA4 プロパティID（GAS 側で設定するなら空でOK）
-  DEFAULT_PROPERTY_ID: '425610888',
-  // レポート見出しに出す名称（空なら「GA4 プロパティ <ID>」）
-  PROPERTY_LABEL: 'ACEサイト分析'
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxb2Fga6SUdTq7FKxv59X6M5vCwSHB7yj55fQ9wPKv9K1jOmDg3n4WhL8fSKUilQvO9Pw/exec', // GAS ウェブアプリの /exec URL
+  DEFAULT_PROPERTY_ID: '425610888',                    // 既定の GA4 プロパティID（GAS 側で設定するなら空でOK）
+  PROPERTY_LABEL: 'ACEサイト分析'                          // レポート見出しの名称（空なら自動）
+};
+
+/* ============================================================
+   2) 入口（流入元）の分類ルール — 上から順に最初に一致したものを採用
+      入口が増えたら test を1行足すだけ。source / medium は小文字で判定。
+   ============================================================ */
+const SOURCE_RULES = [
+  { key:'line',    label:'LINE・直接アクセス', color:'#2857D6',
+    test:(s,m)=> s==='(direct)' || s.includes('line') },
+  { key:'site',    label:'公式サイト',          color:'#0F9E8E',
+    test:(s,m)=> s.includes('ace-gym.net') },
+  { key:'app',     label:'会員アプリ(hacomono)', color:'#E8912D',
+    test:(s,m)=> s.includes('hacomono') },
+  { key:'search',  label:'検索（Google・Yahoo!）', color:'#8B5CF6',
+    test:(s,m)=> m==='organic' },
+  { key:'sns',     label:'SNS',                 color:'#E15B97',
+    test:(s,m)=> m==='social' || /instagram|facebook|fb\.|t\.co|twitter|x\.com/.test(s) }
+];
+const SOURCE_FALLBACK = { key:'other', label:'その他', color:'#9AA4B0' };
+
+/* ============================================================
+   3) ページ名の対応表（任意）— URLパス → 社長向けの名前
+      登録すると一覧がその名前で表示される。未登録はページタイトル/パスを表示。
+      例：
+      '/':            'トップページ',
+      '/lesson':      'レッスン案内',
+      '/price':       '料金・月謝',
+   ============================================================ */
+const PAGE_LABELS = {
+  // '/': 'トップページ',
 };
 
 /* ---------- helpers ---------- */
 const $ = (s)=>document.querySelector(s);
 const fmtInt = (n)=> (Number(n)||0).toLocaleString('ja-JP');
-const fmtPct = (n)=> ((Number(n)||0)*100).toFixed(1)+'%';
-function fmtDur(sec){
-  sec = Math.round(Number(sec)||0);
-  const m = Math.floor(sec/60), s = sec%60;
-  return m>0 ? `${m}分${s}秒` : `${s}秒`;
-}
-function isoDaysAgo(n){
-  const d = new Date(); d.setDate(d.getDate()-n);
-  return d.toISOString().slice(0,10);
-}
-function mdLabel(yyyymmdd){ // '20260813' -> '8/13'
-  const s = String(yyyymmdd);
-  return `${Number(s.slice(4,6))}/${Number(s.slice(6,8))}`;
-}
-function pretty(dateStr){ // '2026-08-13' -> '2026/08/13'
-  return String(dateStr).replace(/-/g,'/');
-}
+const isoDaysAgo = (n)=>{ const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+const pretty = (s)=> String(s).replace(/-/g,'/');
+const esc = (s)=> String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- JSONP ---------- */
-function jsonp(url, params){
-  return new Promise((resolve, reject)=>{
-    const cb = 'ga4cb_' + Math.random().toString(36).slice(2);
-    const script = document.createElement('script');
-    const timer = setTimeout(()=>{ cleanup(); reject(new Error('タイムアウトしました。しばらくおいて再度お試しください。')); }, 30000);
-    function cleanup(){ clearTimeout(timer); delete window[cb]; if(script.parentNode) script.remove(); }
-    window[cb] = (res)=>{ cleanup(); resolve(res); };
-    script.onerror = ()=>{ cleanup(); reject(new Error('サーバーに接続できませんでした。GAS の URL と公開設定を確認してください。')); };
-    const q = new URLSearchParams(Object.assign({}, params, {callback: cb})).toString();
-    script.src = url + (url.includes('?')?'&':'?') + q;
-    document.body.appendChild(script);
-  });
+function splitSM(sm){
+  const parts = String(sm||'').split(' / ');
+  return { source:(parts[0]||'').toLowerCase(), medium:(parts.slice(1).join(' / ')||'').toLowerCase() };
 }
+function bucketOf(source, medium){
+  for(const r of SOURCE_RULES){ if(r.test(source, medium)) return r; }
+  return SOURCE_FALLBACK;
+}
+const ALL_BUCKETS = [...SOURCE_RULES, SOURCE_FALLBACK];
+const bucketMeta = (key)=> ALL_BUCKETS.find(b=>b.key===key) || SOURCE_FALLBACK;
 
-/* ---------- state UI ---------- */
-function showLoading(){
-  $('#report').classList.add('hidden');
-  $('#state').innerHTML = '<div class="msg loading"><span class="spin"></span>データを取得しています…</div>';
-}
-function showError(text){
-  $('#report').classList.add('hidden');
-  $('#state').innerHTML = `<div class="msg err"><b>取得できませんでした。</b><br>${text}</div>`;
-}
-function showSetup(){
-  $('#state').innerHTML = `<div class="msg"><b>初期設定が必要です。</b><br>
-    HTML 内 <code>CONFIG.GAS_URL</code> に、デプロイした GAS ウェブアプリの <code>/exec</code> URL を貼り付けてください。
-    続けて「設定」から GA4 プロパティID を入力し「更新」を押します。</div>`;
-}
-function clearState(){ $('#state').innerHTML = ''; }
-
-/* ---------- delta ---------- */
 function deltaHtml(cur, prev){
-  cur = Number(cur)||0; prev = Number(prev)||0;
-  if(prev === 0){
-    return `<div class="delta flat">前期データなし</div>`;
-  }
-  const pct = (cur-prev)/prev*100;
-  const cls = pct>0.05 ? 'up' : pct<-0.05 ? 'down' : 'flat';
-  const arrow = pct>0.05 ? '▲' : pct<-0.05 ? '▼' : '—';
-  const sign = pct>0 ? '+' : '';
-  return `<div class="delta ${cls}">${arrow} ${sign}${pct.toFixed(1)}%<span class="prev">前期比</span></div>`;
+  cur=Number(cur)||0; prev=Number(prev)||0;
+  if(prev===0) return `<span class="delta flat">前期比 —</span>`;
+  const pct=(cur-prev)/prev*100;
+  const cls = pct>0.05?'up':pct<-0.05?'down':'flat';
+  const arrow = pct>0.05?'▲':pct<-0.05?'▼':'—';
+  const sign = pct>0?'+':'';
+  return `<span class="delta ${cls}">${arrow} ${sign}${pct.toFixed(1)}%<span class="prev">前期比</span></span>`;
 }
 
-/* ---------- render KPI ---------- */
-function renderKpi(totals){
-  const c = totals.current||{}, p = totals.previous||{};
-  const defs = [
-    {key:'totalUsers',      label:'総ユーザー数',      fmt:fmtInt},
-    {key:'newUsers',        label:'新規ユーザー',      fmt:fmtInt},
-    {key:'sessions',        label:'セッション',        fmt:fmtInt},
-    {key:'screenPageViews', label:'ページビュー',      fmt:fmtInt},
-    {key:'engagementRate',  label:'エンゲージメント率', fmt:fmtPct},
-    {key:'averageSessionDuration', label:'平均セッション時間', fmt:fmtDur}
+/* ---------- state ---------- */
+function showLoading(){ $('#report').classList.add('hidden'); $('#state').innerHTML='<div class="msg loading"><span class="spin"></span>データを取得しています…</div>'; }
+function showError(t){ $('#report').classList.add('hidden'); $('#state').innerHTML=`<div class="msg err"><b>取得できませんでした。</b><br>${t}</div>`; }
+function showSetup(){ $('#state').innerHTML=`<div class="msg"><b>初期設定が必要です。</b><br>HTML 内 <code>CONFIG.GAS_URL</code> に、デプロイした GAS ウェブアプリの <code>/exec</code> URL を貼り付けてください。続けて「設定」から GA4 プロパティID を入力し「更新」を押します。</div>`; }
+function clearState(){ $('#state').innerHTML=''; }
+
+/* ---------- render: summary ---------- */
+function renderSummary(totals){
+  const c=totals.current||{}, p=totals.previous||{};
+  const defs=[
+    {key:'sessions',        label:'訪問数'},
+    {key:'totalUsers',      label:'訪問した人数'},
+    {key:'screenPageViews', label:'ページ閲覧数'}
   ];
-  $('#kpiGrid').innerHTML = defs.map(d=>`
+  $('#summaryGrid').innerHTML = defs.map(d=>`
     <div class="cell">
       <div class="label">${d.label}</div>
-      <div class="value num">${d.fmt(c[d.key])}</div>
+      <div class="value num">${fmtInt(c[d.key])}</div>
       ${deltaHtml(c[d.key], p[d.key])}
     </div>`).join('');
 }
 
-/* ---------- render chart ---------- */
-let chart = null;
-function renderChart(daily){
-  const labels = daily.map(r=> mdLabel(r.date));
-  const sessions = daily.map(r=> Number(r.sessions)||0);
-  const users = daily.map(r=> Number(r.totalUsers)||0);
-  const ctx = $('#trend').getContext('2d');
-  const grad = ctx.createLinearGradient(0,0,0,300);
-  grad.addColorStop(0,'rgba(40,87,214,.18)');
-  grad.addColorStop(1,'rgba(40,87,214,0)');
-  if(chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type:'line',
-    data:{ labels, datasets:[
-      { label:'セッション', data:sessions, borderColor:'#2857D6', backgroundColor:grad,
-        borderWidth:2, fill:true, tension:.3, pointRadius:0, pointHoverRadius:4 },
-      { label:'ユーザー', data:users, borderColor:'#0F9E8E', backgroundColor:'transparent',
-        borderWidth:2, fill:false, tension:.3, pointRadius:0, pointHoverRadius:4, borderDash:[] }
-    ]},
-    options:{
-      responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      plugins:{ legend:{display:false},
-        tooltip:{ backgroundColor:'#16202B', padding:10, cornerRadius:8, titleFont:{family:'Inter'}, bodyFont:{family:'Inter'} } },
-      scales:{
-        x:{ grid:{display:false}, ticks:{color:'#9AA4B0', maxRotation:0, autoSkip:true, maxTicksLimit:12, font:{size:11}} },
-        y:{ beginAtZero:true, grid:{color:'#EEF1F5'}, border:{display:false},
-            ticks:{color:'#9AA4B0', font:{size:11}, precision:0} }
-      }
-    }
+/* ---------- render: channel ---------- */
+function renderChannel(channelRows){
+  const cur={}, prev={};
+  channelRows.forEach(r=>{
+    const {source,medium}=splitSM(r.sessionSourceMedium);
+    const b=bucketOf(source,medium).key;
+    const tgt = r.dateRange==='date_range_1'?prev:cur;
+    tgt[b]=(tgt[b]||0)+(Number(r.sessions)||0);
   });
+  const total = Object.values(cur).reduce((a,b)=>a+b,0) || 1;
+  const rows = ALL_BUCKETS
+    .map(b=>({b, cur:cur[b.key]||0, prev:prev[b.key]||0}))
+    .filter(x=> x.cur>0 || x.prev>0)
+    .sort((a,b)=> b.cur-a.cur);
+
+  $('#chanList').innerHTML = rows.map(x=>{
+    const share=(x.cur/total*100);
+    return `<div class="chan-row">
+      <div class="chan-name"><span class="dot" style="background:${x.b.color}"></span>${esc(x.b.label)}</div>
+      <div class="chan-bar"><i style="width:${share.toFixed(1)}%; background:${x.b.color}"></i></div>
+      <div class="chan-val">
+        <b class="num">${fmtInt(x.cur)}</b><em>${share.toFixed(0)}%</em>
+        ${deltaHtml(x.cur, x.prev)}
+      </div>
+    </div>`;
+  }).join('') || '<div class="note">対象期間のデータがありません。</div>';
+
+  $('#chanNote').textContent =
+    '「LINE・直接アクセス」には、LINEのリッチメニューやブックマーク等、入口が記録されない訪問が含まれます。';
 }
 
-/* ---------- render tables ---------- */
-function renderPages(rows){
-  const max = Math.max(1, ...rows.map(r=> Number(r.screenPageViews)||0));
-  $('#pagesBody').innerHTML = rows.map(r=>{
-    const pv = Number(r.screenPageViews)||0;
-    const w = (pv/max*100).toFixed(1);
-    const title = r.pageTitle && r.pageTitle !== '(not set)' ? r.pageTitle : r.pagePath;
-    return `<tr>
-      <td class="name barcell">
-        <div class="name-main" title="${esc(title)}">${esc(title)}</div>
-        <div class="name-sub" title="${esc(r.pagePath)}">${esc(r.pagePath)}</div>
-        <span class="bar"><i style="width:${w}%"></i></span>
-      </td>
-      <td class="r num">${fmtInt(pv)}</td>
-      <td class="r num">${fmtInt(r.totalUsers)}</td>
-      <td class="r num">${fmtDur(r.averageSessionDuration)}</td>
-    </tr>`;
-  }).join('') || emptyRow(4);
+/* ---------- render: pages ---------- */
+function renderPages(pagesRows, pageSourceRows){
+  // ページ別 閲覧数（当期・前期）
+  const cur={}, prev={}, title={};
+  pagesRows.forEach(r=>{
+    const key=r.pagePath;
+    if(!title[key]) title[key]=r.pageTitle;
+    const tgt = r.dateRange==='date_range_1'?prev:cur;
+    tgt[key]=(tgt[key]||0)+(Number(r.screenPageViews)||0);
+  });
+  // ページ×入口 の内訳（当期）
+  const split={};
+  pageSourceRows.forEach(r=>{
+    const {source,medium}=splitSM(r.sessionSourceMedium);
+    const bk=bucketOf(source,medium).key;
+    (split[r.pagePath]=split[r.pagePath]||{});
+    split[r.pagePath][bk]=(split[r.pagePath][bk]||0)+(Number(r.screenPageViews)||0);
+  });
+
+  const topPaths = Object.keys(cur).sort((a,b)=>cur[b]-cur[a]).slice(0,15);
+
+  // 凡例（実際に出現する入口のみ）
+  const usedKeys = new Set();
+  topPaths.forEach(p=> Object.keys(split[p]||{}).forEach(k=>usedKeys.add(k)));
+  const legendBuckets = ALL_BUCKETS.filter(b=>usedKeys.has(b.key));
+  $('#legend').innerHTML = legendBuckets.map(b=>
+    `<span><span class="dot" style="background:${b.color}"></span>${esc(b.label)}</span>`).join('');
+
+  $('#pageList').innerHTML = topPaths.map(path=>{
+    const name = PAGE_LABELS[path] || cleanTitle(title[path]) || path;
+    const sp = split[path]||{};
+    const spTotal = Object.values(sp).reduce((a,b)=>a+b,0) || 1;
+    const order = ALL_BUCKETS.filter(b=> (sp[b.key]||0)>0).sort((a,b)=> sp[b.key]-sp[a.key]);
+    const seg = order.map(b=>`<i style="width:${(sp[b.key]/spTotal*100).toFixed(1)}%; background:${b.color}"></i>`).join('');
+    const chips = order.map(b=>`<span class="chip"><span class="dot" style="background:${b.color}"></span>${esc(b.label)}<span class="num">${fmtInt(sp[b.key])}</span></span>`).join('');
+    return `<div class="page-item">
+      <div class="page-head">
+        <div class="page-name">${esc(name)}<span class="page-path">${esc(path)}</span></div>
+        <div class="page-metrics"><b class="num">${fmtInt(cur[path])}</b><span class="unit">閲覧</span>${deltaHtml(cur[path],prev[path])}</div>
+      </div>
+      <div class="stack">${seg}</div>
+      <div class="chips">${chips}</div>
+    </div>`;
+  }).join('') || '<div class="msg" style="border:0">対象期間のデータがありません。</div>';
 }
-function renderEvents(rows){
-  const max = Math.max(1, ...rows.map(r=> Number(r.eventCount)||0));
-  $('#eventsBody').innerHTML = rows.map(r=>{
-    const ec = Number(r.eventCount)||0;
-    const w = (ec/max*100).toFixed(1);
-    return `<tr>
-      <td class="name barcell">
-        <div class="name-main" title="${esc(r.eventName)}">${esc(r.eventName)}</div>
-        <span class="bar"><i style="width:${w}%"></i></span>
-      </td>
-      <td class="r num">${fmtInt(ec)}</td>
-      <td class="r num">${fmtInt(r.totalUsers)}</td>
-    </tr>`;
-  }).join('') || emptyRow(3);
+function cleanTitle(t){
+  if(!t || t==='(not set)') return '';
+  // 「ページ名 | サイト名」「ページ名 - サイト名」形式なら前半だけ採用
+  return String(t).split(/\s[|｜]\s|\s-\s/)[0].trim();
 }
-function emptyRow(cols){ return `<tr><td colspan="${cols}" style="color:var(--faint);padding:20px 16px">対象データがありません。</td></tr>`; }
-function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 /* ---------- main ---------- */
 async function load(){
   if(!CONFIG.GAS_URL || CONFIG.GAS_URL.startsWith('PASTE_')){ showSetup(); return; }
-  const startDate = $('#start').value, endDate = $('#end').value;
-  if(!startDate || !endDate){ showError('開始日と終了日を指定してください。'); return; }
-  if(startDate > endDate){ showError('開始日が終了日より後になっています。'); return; }
+  const startDate=$('#start').value, endDate=$('#end').value;
+  if(!startDate||!endDate){ showError('開始日と終了日を指定してください。'); return; }
+  if(startDate>endDate){ showError('開始日が終了日より後になっています。'); return; }
+  const propertyId=($('#propId').value||CONFIG.DEFAULT_PROPERTY_ID||'').replace(/\D/g,'');
 
-  const propertyId = ($('#propId').value || CONFIG.DEFAULT_PROPERTY_ID || '').replace(/\D/g,'');
-  $('#run').disabled = true;
-  showLoading();
+  $('#run').disabled=true; showLoading();
   try{
-       const q = new URLSearchParams({ startDate, endDate, propertyId }).toString();
-    const resp = await fetch(CONFIG.GAS_URL + '?' + q);
-    const res = await resp.json();
-    if(!res || !res.ok){ throw new Error((res && res.error) || '不明なエラーが発生しました。'); }
-    const d = res.data;
-    const label = ($('#propLabel').value || CONFIG.PROPERTY_LABEL || `GA4 プロパティ ${d.meta.propertyId}`);
-    $('#subline').innerHTML = `<b>${esc(label)}</b>　${pretty(d.meta.startDate)}〜${pretty(d.meta.endDate)}` +
+    const q=new URLSearchParams({startDate,endDate,propertyId}).toString();
+    const resp=await fetch(CONFIG.GAS_URL+'?'+q);
+    if(!resp.ok) throw new Error('サーバー応答エラー（HTTP '+resp.status+'）。GAS の公開設定を確認してください。');
+    const res=await resp.json();
+    if(!res||!res.ok) throw new Error((res&&res.error)||'不明なエラーが発生しました。');
+    const d=res.data;
+
+    const label=($('#propLabel').value||CONFIG.PROPERTY_LABEL||`GA4 プロパティ ${d.meta.propertyId}`);
+    $('#subline').innerHTML=`<b>${esc(label)}</b>　${pretty(d.meta.startDate)}〜${pretty(d.meta.endDate)}`+
       `<span style="color:var(--faint)">（前期比：${pretty(d.meta.prevStartDate)}〜${pretty(d.meta.prevEndDate)}）</span>`;
-    renderKpi(d.totals);
-    renderChart(d.daily||[]);
-    renderPages(d.pages||[]);
-    renderEvents(d.events||[]);
-    $('#updated').textContent = '取得日時：' + new Date().toLocaleString('ja-JP');
-    clearState();
-    $('#report').classList.remove('hidden');
+    renderSummary(d.totals);
+    renderChannel(d.channel||[]);
+    renderPages(d.pages||[], d.pageSource||[]);
+    $('#updated').textContent='取得日時：'+new Date().toLocaleString('ja-JP');
+    clearState(); $('#report').classList.remove('hidden');
   }catch(err){
     showError(esc(err.message||String(err)));
   }finally{
-    $('#run').disabled = false;
+    $('#run').disabled=false;
   }
 }
 
 /* ---------- controls ---------- */
 function setPreset(days){
-  $('#end').value = isoDaysAgo(1);       // 昨日
-  $('#start').value = isoDaysAgo(days);  // days 日前
-  document.querySelectorAll('#presets button').forEach(b=>{
-    b.setAttribute('aria-pressed', String(Number(b.dataset.days)===days));
-  });
+  $('#end').value=isoDaysAgo(1); $('#start').value=isoDaysAgo(days);
+  document.querySelectorAll('#presets button').forEach(b=> b.setAttribute('aria-pressed', String(Number(b.dataset.days)===days)));
 }
-$('#presets').addEventListener('click', e=>{
-  const b = e.target.closest('button'); if(!b) return;
-  setPreset(Number(b.dataset.days)); load();
-});
-['#start','#end'].forEach(sel=> $(sel).addEventListener('change', ()=>{
-  document.querySelectorAll('#presets button').forEach(b=> b.setAttribute('aria-pressed','false'));
-}));
+$('#presets').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; setPreset(Number(b.dataset.days)); load(); });
+['#start','#end'].forEach(sel=> $(sel).addEventListener('change',()=> document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed','false'))));
 $('#run').addEventListener('click', load);
 $('#print').addEventListener('click', ()=> window.print());
-$('#propId').value = CONFIG.DEFAULT_PROPERTY_ID || '';
-$('#propLabel').value = CONFIG.PROPERTY_LABEL || '';
+$('#propId').value=CONFIG.DEFAULT_PROPERTY_ID||'';
+$('#propLabel').value=CONFIG.PROPERTY_LABEL||'';
 
-/* init */
-setPreset(28);
-load();
+setPreset(28); load();
 </script>
 </body>
 </html>
